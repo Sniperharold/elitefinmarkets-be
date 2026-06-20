@@ -1,0 +1,160 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String
+  fullName       String
+  phone          String
+  dateOfBirth    String?
+  address        String?
+  city           String?
+  country        String?
+  zipCode        String?
+  currency       String   @default("USD")
+  accountType    String   @default("savings")
+  accountNumber  String   @unique
+  transactionPin String?
+  photoUrl       String?
+  promoCode      String?
+  role           String   @default("user")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  wallet         Wallet?
+  deposits       Deposit[]
+  sessions       Session[]
+  supportTickets SupportTicket[]
+  creditCards    CreditCard[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Wallet {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  balance        Float    @default(0)
+  cryptoBalance  Float    @default(0)
+  totalDeposited Float    @default(0)
+  totalWithdrawn Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model CreditCard {
+  id             String   @id @default(uuid())
+  userId         String
+  cardNumber     String
+  cardHolder     String
+  expiryMonth    String
+  expiryYear     String
+  cvv            String
+  billingAddress String?
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_cards")
+}
+
+model Deposit {
+  id            String    @id @default(uuid())
+  userId        String
+  amount        Float
+  currency      String
+  paymentMethod String    @default("CRYPTO")
+  network       String?
+  txHash        String?
+  paymentRef    String?
+  screenshotUrl String?
+  walletAddress String?
+  status        String    @default("pending")
+  bonusAmount   Float     @default(0)
+  bonusPct      Float     @default(0)
+  adminNote     String?
+  confirmedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("deposits")
+}
+
+model PaymentChannel {
+  id        String   @id @default(uuid())
+  method    String   @unique
+  label     String
+  details   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payment_channels")
+}
+
+model SupportTicket {
+  id         String   @id @default(uuid())
+  userId     String
+  subject    String
+  message    String?
+  category   String   @default("general")
+  priority   String   @default("normal")
+  status     String   @default("open")
+  adminReply String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  TicketMessage[]
+
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id        String   @id @default(uuid())
+  ticketId  String
+  userId    String
+  role      String
+  body      String
+  createdAt DateTime @default(now())
+
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_messages")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String
+  amount      Float
+  description String
+  createdAt   DateTime @default(now())
+
+  @@map("transactions")
+}
